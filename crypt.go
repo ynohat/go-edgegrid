@@ -1,4 +1,4 @@
-package open
+package edgegrid
 
 import (
 	"crypto/hmac"

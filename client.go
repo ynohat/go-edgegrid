@@ -1,4 +1,4 @@
-package open
+package edgegrid
 
 import (
 	"bytes"
@@ -11,6 +11,10 @@ import (
 
 	"github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
+)
+
+const (
+	moniker string = "EG1-HMAC-SHA256"
 )
 
 // EdgeGrid Api interface to Akamai
@@ -88,7 +92,6 @@ func (e *EdgeGrid) Send(method, path, body string) (*http.Response, error) {
 
 	r, _ := http.NewRequest(method, e.host+path, bytes.NewBufferString(body))
 	r.Header.Add("Content-Type", "application/json")
-	//r.Header.Add("Content-Length", strconv.Itoa(len(body)))
 	r.Header.Add("Authorization", e.signedRequest(method, path, r.Header, body))
 	return client.Do(r)
 }
@@ -96,16 +99,19 @@ func (e *EdgeGrid) Send(method, path, body string) (*http.Response, error) {
 func (e *EdgeGrid) signedRequest(method, path string, headers http.Header, body string) string {
 
 	t := time.Now().UTC()
+	timestamp := t.Format("20060102T15:04:05-0700")
 
-	joinedPairs := map[string]string{
-		"client_token": e.clientToken,
-		"access_token": e.accessToken,
-		"timestamp":    t.Format("20060102T15:04:05-0700"),
-		"nonce":        uuid.NewV4().String(),
+	joinedPairs := []string{
+		"client_token=" + e.clientToken,
+		"access_token=" + e.accessToken,
+		"timestamp=" + timestamp,
+		"nonce=" + uuid.NewV4().String(),
 	}
 
-	authHeader := "EG1-HMAC-SHA256 " + formatMap(sorting(joinedPairs), "=", ";")
-	authHeader += "signature=" + ComputeHmac256(dataToSign(method, e.host+path, authHeader, headers, body), ComputeHmac256(joinedPairs["timestamp"], e.clientSecret))
+	authHeader := moniker + " " + strings.Join(joinedPairs, ";")
+	authHeader += ";signature=" + ComputeHmac256(dataToSign(method, e.host+path, authHeader, headers, body), ComputeHmac256(timestamp, e.clientSecret))
+
+	log.Println(authHeader)
 
 	return authHeader
 }
@@ -124,7 +130,7 @@ func dataToSign(method, requestURL string, authHeader string, headers http.Heade
 		method,
 		parsedURL.Scheme,
 		parsedURL.Host,
-		parsedURL.Path,
+		parsedURL.Path + parsedURL.RawQuery,
 		strings.TrimSpace(parsedHeadersString[:len(parsedHeadersString)-1]),
 		Compute256(body),
 		authHeader,
@@ -132,7 +138,7 @@ func dataToSign(method, requestURL string, authHeader string, headers http.Heade
 
 	var returnString string
 	for _, k := range dataToSign {
-		returnString += k + "\\t"
+		returnString += k + "\t"
 	}
 
 	log.Println(returnString)
@@ -156,16 +162,4 @@ func formatMap(m map[string]string, sep1, sep2 string) string {
 		r += k + sep1 + v + sep2
 	}
 	return r
-}
-
-func sorting(m map[string]string) map[string]string {
-
-	placeholder := make(map[string]string, len(m))
-
-	placeholder["client_token"] = m["client_token"]
-	placeholder["access_token"] = m["access_token"]
-	placeholder["timestamp"] = m["timestamp"]
-	placeholder["nonce"] = m["nonce"]
-
-	return placeholder
 }
