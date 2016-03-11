@@ -3,7 +3,6 @@ package edgegrid
 import (
 	"bytes"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -109,9 +108,8 @@ func (e *EdgeGrid) signedRequest(method, path string, headers http.Header, body 
 	}
 
 	authHeader := moniker + " " + strings.Join(joinedPairs, ";")
-	authHeader += ";signature=" + ComputeHmac256(dataToSign(method, e.host+path, authHeader, headers, body), ComputeHmac256(timestamp, e.clientSecret))
-
-	log.Println(authHeader)
+	signingKey := ComputeHmac256(timestamp, e.clientSecret)
+	authHeader += ";signature=" + ComputeHmac256(dataToSign(method, e.host+path, authHeader, headers, body), signingKey)
 
 	return authHeader
 }
@@ -123,15 +121,12 @@ func dataToSign(method, requestURL string, authHeader string, headers http.Heade
 		return ""
 	}
 
-	parsedHeaders := formatHeaders(headers)
-	parsedHeadersString := formatMap(parsedHeaders, ":", "\t")
-
 	dataToSign := []string{
 		method,
 		parsedURL.Scheme,
 		parsedURL.Host,
 		parsedURL.Path + parsedURL.RawQuery,
-		strings.TrimSpace(parsedHeadersString[:len(parsedHeadersString)-1]),
+		"",
 		Compute256(body),
 		authHeader,
 	}
@@ -141,9 +136,7 @@ func dataToSign(method, requestURL string, authHeader string, headers http.Heade
 		returnString += k + "\t"
 	}
 
-	log.Println(returnString)
-
-	return returnString
+	return strings.TrimSpace(returnString) + ";"
 }
 
 func formatHeaders(headers http.Header) map[string]string {
