@@ -3,6 +3,8 @@ package edgegrid
 import (
 	"io/ioutil"
 	"testing"
+
+	"strings"
 )
 
 func TestApiRequest(t *testing.T) {
@@ -20,5 +22,21 @@ func TestApiRequest(t *testing.T) {
 		}
 
 		t.Log(string(contents))
+	}
+}
+
+func TestSignedRequest(t *testing.T) {
+	e := new(EdgeGrid)
+	e.clientToken = "test"
+	e.clientSecret = "testSecret"
+	e.accessToken = "testAccess"
+	signedRequest := e.signedRequest("POST", "/somwhere", nil, "")
+
+	if strings.Index(signedRequest, "EG1-HMAC-SHA256") != 0 {
+		t.Error("Bad signed request: missing hash declaration: ", signedRequest)
+	}
+
+	if !strings.Contains(signedRequest, "client_token="+e.clientToken+";") {
+		t.Error("Bad signed request: missing client token: ", signedRequest)
 	}
 }

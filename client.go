@@ -138,21 +138,3 @@ func dataToSign(method, requestURL string, authHeader string, headers http.Heade
 
 	return strings.TrimSpace(returnString) + ";"
 }
-
-func formatHeaders(headers http.Header) map[string]string {
-	parsedHeaders := map[string]string{}
-
-	for i, v := range headers {
-		parsedHeaders[strings.TrimSpace(strings.ToLower(i))] = strings.TrimSpace(v[0])
-	}
-
-	return parsedHeaders
-}
-
-func formatMap(m map[string]string, sep1, sep2 string) string {
-	var r string
-	for k, v := range m {
-		r += k + sep1 + v + sep2
-	}
-	return r
-}
