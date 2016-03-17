@@ -1,5 +1,7 @@
 # Go Akamai-open/edgegrid client
 
+[![GoDoc](https://godoc.org/github.com/chonthu/go-edgegrid?status.svg)](https://godoc.org/github.com/chonthu/go-edgegrid)
+
 ## Installation
 
     go get github.com/chonthu/go-edgegrid
