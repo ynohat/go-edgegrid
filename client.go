@@ -127,7 +127,7 @@ func dataToSign(method, requestURL string, authHeader string, headers http.Heade
 		parsedURL.Host,
 		parsedURL.Path + parsedURL.RawQuery,
 		"",
-		Compute256(body),
+		body,
 		authHeader,
 	}
 
